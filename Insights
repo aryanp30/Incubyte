@@ -1,0 +1,192 @@
+1. Total Sales by Payment Method
+
+Query:
+SELECT PaymentMethod, SUM(TransactionAmount) AS TotalSales
+FROM `sql301.assessment.assessment`
+WHERE PaymentMethod IS NOT NULL
+GROUP BY PaymentMethod
+ORDER BY TotalSales DESC;
+
+Insight: The most revenue comes from Cash transactions, followed by Debit Card and UPI.
+
+Similarly, we can make a data cut of Total Sales, Volume, # Customers by City, Store Type, Gender, Product Name, Region and IsPromotional
+
+
+2. Average Order Value (AOV) Over Time
+
+Query:
+SELECT 
+  EXTRACT(MONTH FROM TransactionDate) AS month_number, 
+  AVG(TransactionAmount) AS AvgOrderValue
+FROM `sql301.assessment.assessment`
+WHERE TransactionDate IS NOT NULL
+GROUP BY month_number
+ORDER BY month_number;
+
+Insight: Helps identify seasonal trends in customer spending patterns. This can be plotted in a graph to find a trend
+
+
+3. Customer Age Group with Highest Spending
+
+Query:
+SELECT 
+  CASE 
+    WHEN CustomerAge BETWEEN 18 AND 25 THEN '18-25'
+    WHEN CustomerAge BETWEEN 26 AND 35 THEN '26-35'
+    WHEN CustomerAge BETWEEN 36 AND 50 THEN '36-50'
+    ELSE '50+' 
+  END AS AgeGroup,
+  SUM(TransactionAmount) AS TotalSpending
+FROM `sql301.assessment.assessment`
+WHERE CustomerAge IS NOT NULL
+GROUP BY AgeGroup
+ORDER BY TotalSpending DESC;
+
+Insight: Customers aged 50+ contribute the most to total spending.
+
+
+4. High-Value Customers (Top 10% Spenders)
+
+Query:
+WITH RankedCustomers AS (
+  SELECT 
+    CustomerID, 
+    SUM(TransactionAmount) AS TotalSpending,
+    RANK() OVER (ORDER BY SUM(TransactionAmount) DESC) AS rnk,
+    COUNT(*) OVER () AS total_customers
+  FROM `sql301.assessment.assessment`
+  WHERE CustomerID IS NOT NULL
+  GROUP BY CustomerID
+)
+SELECT CustomerID, TotalSpending
+FROM RankedCustomers
+WHERE rnk <= total_customers * 0.1
+ORDER BY TotalSpending DESC;
+
+Insight: Identifying high-value customers in order to identify whom to be prioritised when providing any service.
+
+
+5. Repeat Customers vs One-Time Buyers
+
+Query:
+WITH CustomerCounts AS (
+  SELECT 
+    CustomerID, 
+    COUNT(*) AS TransactionCount
+  FROM `sql301.assessment.assessment`
+  WHERE CustomerID IS NOT NULL
+  GROUP BY CustomerID
+)
+SELECT 
+  COUNT(CustomerID) AS TotalCustomers,
+  COUNT(CASE WHEN TransactionCount > 1 THEN CustomerID END) AS RepeatCustomers,
+  COUNT(CASE WHEN TransactionCount = 1 THEN CustomerID END) AS OneTimeCustomers
+FROM CustomerCounts;
+
+Insight: If repeat customers are low, focus on retention strategies.
+
+
+6. Delivery Time vs Customer Satisfaction
+
+Query:
+SELECT DeliveryTimeDays, AVG(FeedbackScore) AS AvgFeedback
+FROM `sql301.assessment.assessment`
+GROUP BY DeliveryTimeDays
+ORDER BY DeliveryTimeDays;
+
+Insight: Longer delivery times might result in lower customer satisfaction. But no trend found here
+
+7. Gender-Based Shopping Behavior
+
+Query:
+SELECT ProductName, CustomerGender, SUM(TransactionAmount) AS TotalSpending, 
+       COUNT(*) AS TotalTransactions, 
+       AVG(TransactionAmount) AS AvgOrderValue
+FROM `sql301.assessment.assessment`
+WHERE CustomerGender IS NOT NULL
+GROUP BY CustomerGender, ProductName;
+
+Insight: Helps in gender-specific marketing campaigns.
+
+
+8. Average Discount Percentage by Store Type
+
+Query:
+SELECT StoreType, AVG(DiscountPercent) AS AvgDiscount
+FROM `sql301.assessment.assessment`
+WHERE StoreType IS NOT NULL
+GROUP BY StoreType
+ORDER BY AvgDiscount DESC;
+
+Insight: In-Store stores offer higher discounts compared to Online purchases.
+
+
+9. Most Popular Product by Quantity Sold
+
+Query:
+SELECT ProductName, SUM(Quantity) AS TotalQuantitySold
+FROM `sql301.assessment.assessment`
+WHERE ProductName IS NOT NULL
+GROUP BY ProductName
+ORDER BY TotalQuantitySold DESC;
+
+Insight: The best-selling product is Apple based on total quantity sold.
+
+
+10. Region with Highest Transaction Amount
+
+Query:
+SELECT Region, SUM(TransactionAmount) AS TotalSales
+FROM `sql301.assessment.assessment`
+WHERE Region IS NOT NULL
+GROUP BY Region
+ORDER BY TotalSales DESC;
+
+Insight: The South region generates the highest sales.
+
+
+11. Cities with the Most Transactions
+
+Query:
+SELECT City, COUNT(*) AS TransactionCount
+FROM `sql301.assessment.assessment`
+GROUP BY City
+ORDER BY TransactionCount DESC;
+
+Insight: Bangalore, Delhi and Lucknow have the highest number of transactions.
+
+
+12. Fraudulent Transactions (Negative Amounts)
+
+Query:
+SELECT COUNT(*) AS FraudulentTransactions
+FROM `sql301.assessment.assessment`
+WHERE TransactionAmount < 0;
+
+Insight: A high number of negative transactions may indicate fraud or returns abuse. 7446 cases observed in this data set
+
+
+13. Order Cancellations by Product Category
+
+Query:
+SELECT ProductName, COUNT(*) as TotalOrders, 
+  SUM(CASE WHEN Returned = true THEN 1 ELSE 0 END) AS CanceledOrders,
+  ROUND(SUM(CASE WHEN Returned = true THEN 1 ELSE 0 END)/COUNT(*)*100,2) AS PercentCancellation
+FROM `sql301.assessment.assessment`
+WHERE ProductName IS NOT NULL
+GROUP BY ProductName
+ORDER BY PercentCancellation DESC;	
+
+Insight: Some products might have higher return rates, requiring quality checks. Apple & Laptop have the highest rate of return
+
+
+14. Region with Highest Cancellation
+
+Query:
+SELECT Region, COUNT(*) AS ReturnCount
+FROM `sql301.assessment.assessment`
+WHERE Returned = 'Yes' AND Region IS NOT NULL
+GROUP BY Region
+ORDER BY ReturnCount DESC;
+
+Insight: Some regions might have higher return rates, requiring a review of logistics or product quality. The South region has the highest amount of returns
